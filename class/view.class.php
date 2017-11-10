@@ -1,37 +1,88 @@
 <?php
 class view
 {
-    public function __construct($view)
+    protected $filepath;
+    protected $filecontent;
+    protected $content;
+    protected $data = [];
+
+    public function __construct($filename)
     {
-        $this->_view = $view;
-        $this->_renderView = $this->_originalView = $this->openView();
-    }
-    private function openView()
-    {
-        try {
-            $filename = 'view/'.$this->_view.'.model';
-            $handle   = fopen($filename, "r");
-            $contents = fread($handle, filesize($filename));
-            fclose($handle);
-        } catch (Exception $e) {
-            die('Erreur : ' . $e->getMessage());
-        }
-        return $contents;
-    }
-    public function find($word, $original=false)
-    {
-        if ($original===false) {
-            return strstr($this->_renderView, '{{'.$word.'}}');
-        } else {
-            return strstr($this->_originalView, '{{'.$word.'}}');
+        $filename .= '.model';
+        if (is_file($filename))
+        {
+          $this->filepath = $filename;
+          $this->filecontent = $this->get_content($this->filepath);
+        }else{
+          throw new Exception($filename . ' is not a valid file');
         }
     }
-    public function replace($word, $substitute)
+    public function set($key, $value)
     {
-        $this->_renderView = str_replace('{{'.$word.'}}', $substitute, $this->_renderView);
+        $this->data[$key] = $value;
     }
     public function render()
     {
-        echo $this->_renderView;
+        ob_start();
+        $this->content = $this->parse($this->filecontent);
+        eval('?>' . $this->content);
+        return ob_get_clean();
+    }
+    private function get_content($filename)
+    {
+        return file_get_contents($filename);
+    }
+    protected function parse($content)
+    {
+        $content = preg_replace('#{{ *([0-9a-z_\.\-]+) *}}#i', '<?php $this->_show_var(\'$1\'); ?>', $content);
+        return $content;
+    }
+    protected function _show_var($name)
+    {
+        echo $this->getVar($name, $this->data);
+    }
+    protected function getVar($var, $parent)
+    {
+        $parts = explode('.', $var);
+        if (count($parts) === 1)
+        {
+            return $this->getSubVar($var, $parent);
+        }
+        else
+        {
+            // Au moins 1 enfant
+            $name = array_shift($parts);
+            $new_parent = $this->getSubVar($name, $parent);
+            $var = join('.', $parts);
+            // Appel récursif
+            return $this->getVar($var, $new_parent);
+        }
+    }
+    protected function getSubVar($var, $parent)
+    {
+        if (is_array($parent))
+        {
+            if (isset($parent[$var]))
+            {
+                return $parent[$var];
+            }
+            return '';
+        }
+        if (is_object($parent))
+        {
+            // Si le parent est un objet
+            if (is_callable([$parent, $var]))
+            {
+                // L'enfant est une méthode
+                return $parent->$var();
+            }
+            if (isset($parent->$var))
+            {
+                // L'enfant est un attribut
+                return $parent->$var;
+            }
+            return '';
+        }
+        return '';
     }
 }
