@@ -1,7 +1,7 @@
 <?php
 class display
 {
-	public function __construct($state,$msg,$encode='',$time=true){
+	public function __construct($state,$msg,$encode=false,$time=true){
 		$add='';
 		if($state=='success'){
 				$type = "alert-success";
@@ -34,7 +34,7 @@ class display
 			  		<p>'.$msg.'</p>
 				</div>
 			'.$add;
-		if($encode != ''){
+		if($encode){
 			$return = json_encode(array('status'=> $state, 'html'=>$html));
 			echo $return;
 		} else {
