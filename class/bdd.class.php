@@ -6,6 +6,7 @@ class bdd
         $this->_data=array();
         $this->_cache=array();
         $this->_result=array();
+        $this->_stmt ='';
         $this->_pdo = new PDO('mysql:host='.HOST_BDD.';charset=utf8;dbname='.BASE_BDD,USER_BDD,PASS_BDD, array(PDO::ATTR_ERRMODE => PDO::ERRMODE_WARNING));
     }
     public function cache($requete,$data){
@@ -61,6 +62,7 @@ class bdd
                 $this->_result=$result;
             }
         }
+      $this->_stmt = $stmt;
         $result=$this->_result;
         $this->clear_cache();
         return $result;
@@ -74,13 +76,13 @@ class bdd
     {
         return $this->_pdo->lastInsertId();
     }
-    public function countcol($i)
+    public function countcol()
     {
-        return $i->columnCount();
+        return $this->_stmt->columnCount();
     }
-    public function countrow($i)
+    public function countrow()
     {
-        return $i->rowCount();
+        return $this->_stmt->rowCount();
     }
     
     
